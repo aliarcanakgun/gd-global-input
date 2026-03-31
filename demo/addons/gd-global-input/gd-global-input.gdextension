@@ -1,0 +1,12 @@
+[configuration]
+entry_symbol = "library_init"
+compatibility_minimum = "4.5"
+reloadable = true
+
+[libraries]
+windows.debug.x86_64 = "./windows/gd-global-input.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "./windows/gd-global-input.windows.template_release.x86_64.dll"
+linux.debug.x86_64 = "./linux/libgd-global-input.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "./linux/libgd-global-input.linux.template_release.x86_64.so"
+macos.debug = "./macos/libgd-global-input.macos.template_debug.arm64.dylib"
+macos.release = "./macos/libgd-global-input.macos.template_release.arm64.dylib"
