@@ -1,0 +1,53 @@
+name: Build GDExtension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build for ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install SCons
+        run: |
+          python -m pip install scons
+
+      - name: Build Release
+        run: |
+          scons platform=${{ matrix.platform }} target=template_release
+
+      - name: Build Debug
+        run: |
+          scons platform=${{ matrix.platform }} target=template_debug
+
+      - name: Prepare Artifact
+        shell: bash
+        run: |
+          mkdir -p build_artifact/addons
+          cp -r demo/addons/gd-global-input build_artifact/addons/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gd-global-input-${{ matrix.platform }}
+          path: build_artifact/

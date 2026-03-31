@@ -5,7 +5,8 @@ import sys
 env = SConscript("godot-cpp/SConstruct")
 
 env.Append(CPPPATH=["src/"])
-env.Append(LIBS=["user32"])
+if env["platform"] == "windows":
+    env.Append(LIBS=["user32"])
 
 sources = Glob("src/*.cpp")
 
