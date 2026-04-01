@@ -2,6 +2,8 @@
 
 A GDExtension for Godot 4.5+ that provides global (system-wide) keyboard input detection on Windows. It allows your Godot application to receive and respond to keyboard input even when the game window is not in focus—perfect for overlays, macro tools, or background utilities.
 
+Currently, it only supports **Windows**. Support for other platforms is planned for future updates.
+
 ## Features
 
 - **System-Wide Input Detection:** Detects key presses globally on Windows using `GetAsyncKeyState`.
@@ -84,7 +86,3 @@ if GlobalInput.is_global_input_just_released("my_custom_action"):
 if GlobalInput.is_global_input_pressed("my_custom_action"):
     print("Custom action is being held down")
 ```
-
-## Platform Support
-
-Currently, it only supports **Windows**. Support for other platforms is planned for future updates.
