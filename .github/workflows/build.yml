@@ -3,22 +3,25 @@ name: Build GDExtension
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: Build for ${{ matrix.platform }}
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: windows
             os: windows-latest
+            arch: x86_64
 
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -26,28 +29,62 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.x"
 
       - name: Install SCons
-        run: |
-          python -m pip install scons
+        run: pip install scons
 
-      - name: Build Release
-        run: |
-          scons platform=${{ matrix.platform }} target=template_release
+      - name: Build (debug)
+        run: scons platform=${{ matrix.platform }} arch=${{ matrix.arch }} target=template_debug
 
-      - name: Build Debug
-        run: |
-          scons platform=${{ matrix.platform }} target=template_debug
+      - name: Build (release)
+        run: scons platform=${{ matrix.platform }} arch=${{ matrix.arch }} target=template_release
 
-      - name: Prepare Artifact
+      - name: Prepare Plugin Directory
         shell: bash
         run: |
-          mkdir -p build_artifact/addons
-          cp -r demo/addons/gd-global-input build_artifact/addons/
+          mkdir -p demo/addons/gd-global-input/${{ matrix.platform }}
+          cp -r bin/* demo/addons/gd-global-input/${{ matrix.platform }}/ || true
 
-      - name: Upload Artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: gd-global-input-${{ matrix.platform }}
-          path: build_artifact/
+          name: gd-global-input-${{ matrix.platform }}-${{ matrix.arch }}
+          path: demo/addons/gd-global-input/
+
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Merge into single addon folder
+        run: |
+          mkdir -p release/addons/gd-global-input
+          for dir in artifacts/gd-global-input-*/; do
+            rsync -a "$dir"/ release/addons/gd-global-input/
+          done
+          find release/addons/gd-global-input -name "*.exp" -type f -delete
+          find release/addons/gd-global-input -name "*.lib" -type f -delete
+
+      - name: Create release ZIP
+        run: |
+          ZIP_NAME="gd-global-input-${{ github.ref_name }}.zip"
+          cd release && zip -r ../$ZIP_NAME addons/
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Upload release ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: gd-global-input-release
+          path: ${{ env.ZIP_NAME }}
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true
