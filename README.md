@@ -6,9 +6,11 @@ Currently, it only supports **Windows**. Support for other platforms is planned 
 
 ## Features
 
-- **System-Wide Input Detection:** Detects key presses globally on Windows using `GetAsyncKeyState`.
+- **System-Wide Input Detection:** Detects key presses and mouse clicks globally on Windows using `GetAsyncKeyState`.
+- **Global Mouse Position:** Get the actual X and Y coordinates of the mouse cursor on your Windows desktop.
+- **Lock Key States:** Easily check if Caps Lock, Num Lock, or Scroll Lock is currently active.
 - **Background Support:** Continues to work reliably when the Godot window loses focus.
-- **InputMap Integration:** Transparently integrates with Godot's built-in `InputMap` system for action-based input.
+- **InputMap Integration:** Transparently integrates with Godot's built-in `InputMap` system for action-based input (supports both keyboard keys and mouse buttons).
 - **High Performance & Stability:** Designed with a lightweight polling mechanism for low latency and high reliability, avoiding the pitfalls of system-wide hooks.
 
 ## Installation
@@ -65,9 +67,51 @@ if GlobalInput.is_global_key_just_released(KEY_ESCAPE):
     print("Global Escape just released")
 ```
 
+### Checking Mouse States
+
+**Check if a mouse button is currently held down:**
+```gdscript
+if GlobalInput.is_global_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+    print("Global Left Mouse Button is currently pressed")
+```
+
+**Check if a mouse button was just pressed this frame:**
+```gdscript
+if GlobalInput.is_global_mouse_button_just_pressed(MOUSE_BUTTON_RIGHT):
+    print("Global Right Mouse Button just pressed")
+```
+
+**Check if a mouse button was just released this frame:**
+```gdscript
+if GlobalInput.is_global_mouse_button_just_released(MOUSE_BUTTON_MIDDLE):
+    print("Global Middle Mouse Button just released")
+```
+
+### Getting Mouse Position
+
+**Get the global XY coordinates of the mouse cursor on the desktop:**
+```gdscript
+var pos = GlobalInput.get_global_mouse_position()
+print("Global mouse position: ", pos)
+```
+
+### Checking Lock Key States
+
+**Check if lock keys are active (toggled on):**
+```gdscript
+if GlobalInput.is_caps_lock_active():
+    print("Caps Lock is ON")
+
+if GlobalInput.is_num_lock_active():
+    print("Num Lock is ON")
+
+if GlobalInput.is_scroll_lock_active():
+    print("Scroll Lock is ON")
+```
+
 ### Checking Input Map Actions
 
-You can also check for custom actions defined in your project's `InputMap` (Project -> Project Settings -> Input Map). 
+You can also check for custom actions defined in your project's `InputMap` (Project -> Project Settings -> Input Map).
 
 **Check if a custom action is just pressed:**
 ```gdscript

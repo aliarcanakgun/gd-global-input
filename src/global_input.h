@@ -45,6 +45,10 @@ public:
     bool is_global_mouse_button_just_released(int p_button);
     Vector2 get_global_mouse_position();
 
+    bool is_caps_lock_active();
+    bool is_num_lock_active();
+    bool is_scroll_lock_active();
+
     bool is_global_input_pressed(const String &p_action);
     bool is_global_input_just_pressed(const String &p_action);
     bool is_global_input_just_released(const String &p_action);

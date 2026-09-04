@@ -33,3 +33,6 @@ func _process(_delta: float) -> void:
 	if GlobalInput.is_global_input_pressed("ui_up"):
 		# checks all keys bound to ui_up (w, up arrow, etc.)
 		print("ui_up action is pressing")
+	
+	#var pos = GlobalInput.get_global_mouse_position()
+	#print("Global mouse position: ", pos)

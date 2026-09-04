@@ -35,6 +35,10 @@ void GlobalInput::_bind_methods() {
     ClassDB::bind_method(D_METHOD("is_global_mouse_button_just_pressed", "button_index"), &GlobalInput::is_global_mouse_button_just_pressed);
     ClassDB::bind_method(D_METHOD("is_global_mouse_button_just_released", "button_index"), &GlobalInput::is_global_mouse_button_just_released);
     ClassDB::bind_method(D_METHOD("get_global_mouse_position"), &GlobalInput::get_global_mouse_position);
+
+    ClassDB::bind_method(D_METHOD("is_caps_lock_active"), &GlobalInput::is_caps_lock_active);
+    ClassDB::bind_method(D_METHOD("is_num_lock_active"), &GlobalInput::is_num_lock_active);
+    ClassDB::bind_method(D_METHOD("is_scroll_lock_active"), &GlobalInput::is_scroll_lock_active);
 }
 
 // vk to godot keycode mapping
@@ -251,6 +255,20 @@ bool GlobalInput::is_global_input_pressed(const String &p_action) {
     for (int mb : evs.mouse_buttons)
         if (current_mouse_buttons.count(mb)) return true;
     return false;
+}
+
+// lock key queries
+
+bool GlobalInput::is_caps_lock_active() {
+    return (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
+}
+
+bool GlobalInput::is_num_lock_active() {
+    return (GetKeyState(VK_NUMLOCK) & 0x0001) != 0;
+}
+
+bool GlobalInput::is_scroll_lock_active() {
+    return (GetKeyState(VK_SCROLL) & 0x0001) != 0;
 }
 
 bool GlobalInput::is_global_input_just_pressed(const String &p_action) {
