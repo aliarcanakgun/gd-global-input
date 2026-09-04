@@ -45,6 +45,7 @@ jobs:
         run: |
           mkdir -p demo/addons/gd-global-input/${{ matrix.platform }}
           cp -r bin/* demo/addons/gd-global-input/${{ matrix.platform }}/ || true
+          cp LICENSE demo/addons/gd-global-input/LICENSE.txt
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

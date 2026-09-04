@@ -2,8 +2,8 @@
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/input_map.hpp>
 #include <godot_cpp/classes/input_event_key.hpp>
+#include <godot_cpp/classes/input_event_mouse_button.hpp>
 #include <godot_cpp/variant/array.hpp>
-#include <godot_cpp/core/class_db.hpp>
 
 using namespace godot;
 
@@ -30,11 +30,19 @@ void GlobalInput::_bind_methods() {
     ClassDB::bind_method(D_METHOD("is_global_input_pressed", "action"), &GlobalInput::is_global_input_pressed);
     ClassDB::bind_method(D_METHOD("is_global_input_just_pressed", "action"), &GlobalInput::is_global_input_just_pressed);
     ClassDB::bind_method(D_METHOD("is_global_input_just_released", "action"), &GlobalInput::is_global_input_just_released);
+
+    ClassDB::bind_method(D_METHOD("is_global_mouse_button_pressed", "button_index"), &GlobalInput::is_global_mouse_button_pressed);
+    ClassDB::bind_method(D_METHOD("is_global_mouse_button_just_pressed", "button_index"), &GlobalInput::is_global_mouse_button_just_pressed);
+    ClassDB::bind_method(D_METHOD("is_global_mouse_button_just_released", "button_index"), &GlobalInput::is_global_mouse_button_just_released);
+    ClassDB::bind_method(D_METHOD("get_global_mouse_position"), &GlobalInput::get_global_mouse_position);
 }
 
 // vk to godot keycode mapping
 
 static int vk_to_godot(int vk) {
+    // ignore mouse buttons
+    if (vk >= 0x01 && vk <= 0x06) return 0;
+
     // ascii range matches directly (0-9, A-Z, space)
     if ((vk >= 0x30 && vk <= 0x39) ||
         (vk >= 0x41 && vk <= 0x5A) ||
@@ -107,6 +115,17 @@ static int vk_to_godot(int vk) {
 
 // per-frame polling via GetAsyncKeyState
 
+static int vk_to_godot_mouse(int vk) {
+    switch (vk) {
+        case VK_LBUTTON: return 1; // MOUSE_BUTTON_LEFT
+        case VK_RBUTTON: return 2; // MOUSE_BUTTON_RIGHT
+        case VK_MBUTTON: return 3; // MOUSE_BUTTON_MIDDLE
+        case VK_XBUTTON1: return 8; // MOUSE_BUTTON_XBUTTON1
+        case VK_XBUTTON2: return 9; // MOUSE_BUTTON_XBUTTON2
+        default: return 0;
+    }
+}
+
 void GlobalInput::sync_if_needed() {
     uint64_t frame = Engine::get_singleton()->get_process_frames();
     if (frame == last_synced_frame)
@@ -115,13 +134,24 @@ void GlobalInput::sync_if_needed() {
     prev_keys = current_keys;
     current_keys.clear();
 
+    prev_mouse_buttons = current_mouse_buttons;
+    current_mouse_buttons.clear();
+
     for (int vk = 1; vk <= 254; vk++) {
-        if (GetAsyncKeyState(vk) & 0x8000)
-            current_keys.insert(vk_to_godot(vk));
+        if (GetAsyncKeyState(vk) & 0x8000) {
+            int godot_key = vk_to_godot(vk);
+            if (godot_key != 0) current_keys.insert(godot_key);
+            
+            int godot_mouse = vk_to_godot_mouse(vk);
+            if (godot_mouse != 0) current_mouse_buttons.insert(godot_mouse);
+        }
     }
 
     just_pressed_keys.clear();
     just_released_keys.clear();
+    
+    just_pressed_mouse_buttons.clear();
+    just_released_mouse_buttons.clear();
 
     for (int k : current_keys) {
         if (!prev_keys.count(k))
@@ -132,10 +162,42 @@ void GlobalInput::sync_if_needed() {
             just_released_keys.insert(k);
     }
 
+    for (int mb : current_mouse_buttons) {
+        if (!prev_mouse_buttons.count(mb))
+            just_pressed_mouse_buttons.insert(mb);
+    }
+    for (int mb : prev_mouse_buttons) {
+        if (!current_mouse_buttons.count(mb))
+            just_released_mouse_buttons.insert(mb);
+    }
+
     last_synced_frame = frame;
 }
 
-// key queries
+// key and mouse queries
+
+bool GlobalInput::is_global_mouse_button_pressed(int p_button) {
+    sync_if_needed();
+    return current_mouse_buttons.count(p_button) > 0;
+}
+
+bool GlobalInput::is_global_mouse_button_just_pressed(int p_button) {
+    sync_if_needed();
+    return just_pressed_mouse_buttons.count(p_button) > 0;
+}
+
+bool GlobalInput::is_global_mouse_button_just_released(int p_button) {
+    sync_if_needed();
+    return just_released_mouse_buttons.count(p_button) > 0;
+}
+
+Vector2 GlobalInput::get_global_mouse_position() {
+    POINT p;
+    if (GetCursorPos(&p)) {
+        return Vector2(p.x, p.y);
+    }
+    return Vector2();
+}
 
 bool GlobalInput::is_global_key_pressed(int p_keycode) {
     sync_if_needed();
@@ -154,8 +216,13 @@ bool GlobalInput::is_global_key_just_released(int p_keycode) {
 
 // input action queries
 
-static std::set<int> keycodes_for_action(const String &action) {
-    std::set<int> out;
+struct ActionEvents {
+    std::set<int> keys;
+    std::set<int> mouse_buttons;
+};
+
+static ActionEvents keycodes_for_action(const String &action) {
+    ActionEvents out;
     InputMap *im = InputMap::get_singleton();
     if (!im || !im->has_action(action))
         return out;
@@ -164,9 +231,13 @@ static std::set<int> keycodes_for_action(const String &action) {
         Ref<InputEventKey> k = events[i];
         if (k.is_valid()) {
             int kc = (int)k->get_keycode();
-            if (kc != 0) out.insert(kc);
+            if (kc != 0) out.keys.insert(kc);
             int pkc = (int)k->get_physical_keycode();
-            if (pkc != 0) out.insert(pkc);
+            if (pkc != 0) out.keys.insert(pkc);
+        }
+        Ref<InputEventMouseButton> m = events[i];
+        if (m.is_valid()) {
+            out.mouse_buttons.insert((int)m->get_button_index());
         }
     }
     return out;
@@ -174,21 +245,30 @@ static std::set<int> keycodes_for_action(const String &action) {
 
 bool GlobalInput::is_global_input_pressed(const String &p_action) {
     sync_if_needed();
-    for (int k : keycodes_for_action(p_action))
+    ActionEvents evs = keycodes_for_action(p_action);
+    for (int k : evs.keys)
         if (current_keys.count(k)) return true;
+    for (int mb : evs.mouse_buttons)
+        if (current_mouse_buttons.count(mb)) return true;
     return false;
 }
 
 bool GlobalInput::is_global_input_just_pressed(const String &p_action) {
     sync_if_needed();
-    for (int k : keycodes_for_action(p_action))
+    ActionEvents evs = keycodes_for_action(p_action);
+    for (int k : evs.keys)
         if (just_pressed_keys.count(k)) return true;
+    for (int mb : evs.mouse_buttons)
+        if (just_pressed_mouse_buttons.count(mb)) return true;
     return false;
 }
 
 bool GlobalInput::is_global_input_just_released(const String &p_action) {
     sync_if_needed();
-    for (int k : keycodes_for_action(p_action))
+    ActionEvents evs = keycodes_for_action(p_action);
+    for (int k : evs.keys)
         if (just_released_keys.count(k)) return true;
+    for (int mb : evs.mouse_buttons)
+        if (just_released_mouse_buttons.count(mb)) return true;
     return false;
 }

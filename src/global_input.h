@@ -4,6 +4,7 @@
 #include <set>
 #include <godot_cpp/classes/object.hpp>
 #include <godot_cpp/variant/string.hpp>
+#include <godot_cpp/variant/vector2.hpp>
 
 namespace godot {
 
@@ -16,6 +17,12 @@ class GlobalInput : public Object {
     std::set<int> current_keys;
     std::set<int> just_pressed_keys;
     std::set<int> just_released_keys;
+
+    std::set<int> prev_mouse_buttons;
+    std::set<int> current_mouse_buttons;
+    std::set<int> just_pressed_mouse_buttons;
+    std::set<int> just_released_mouse_buttons;
+
     uint64_t last_synced_frame = UINT64_MAX;
 
     void sync_if_needed();
@@ -32,6 +39,11 @@ public:
     bool is_global_key_pressed(int p_keycode);
     bool is_global_key_just_pressed(int p_keycode);
     bool is_global_key_just_released(int p_keycode);
+
+    bool is_global_mouse_button_pressed(int p_button);
+    bool is_global_mouse_button_just_pressed(int p_button);
+    bool is_global_mouse_button_just_released(int p_button);
+    Vector2 get_global_mouse_position();
 
     bool is_global_input_pressed(const String &p_action);
     bool is_global_input_just_pressed(const String &p_action);

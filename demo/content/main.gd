@@ -13,6 +13,18 @@ func _process(_delta: float) -> void:
 	if GlobalInput.is_global_key_just_released(KEY_J):
 		print("J key just released")
 	
+	# mouse just pressed
+	if GlobalInput.is_global_mouse_button_just_pressed(MOUSE_BUTTON_MIDDLE):
+		print("Middle mouse btn just pressed")
+	
+	# mouse held down
+	if GlobalInput.is_global_mouse_button_pressed(MOUSE_BUTTON_XBUTTON1):
+		print("Mouse button held down")
+	
+	# mouse held down
+	if GlobalInput.is_global_mouse_button_just_released(MOUSE_BUTTON_XBUTTON1):
+		print("Mouse button just released")
+	
 	# input action just pressed
 	if GlobalInput.is_global_input_just_pressed("ui_accept"):
 		print("ui_accept action just pressed")
